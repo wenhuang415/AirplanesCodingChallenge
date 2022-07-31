@@ -143,7 +143,7 @@ function lineToName(line: string): string {
 function getCityID(name: any): string {
   let ret = "";
   for(let aCity of cities) {
-    if(aCity.name === name) ret = aCity.city_id
+    if(aCity.name.toLocaleLowerCase() === name) ret = aCity.city_id
   }
   return ret;
 }
@@ -234,6 +234,8 @@ interface memo{
   [key: string]: route[]
 }
 
+
+
 function getAllRoutes(origin: string = "", destination: string = "", Amemo:memo={}) {
   //base case
   //console.log(Amemo)
@@ -241,7 +243,10 @@ function getAllRoutes(origin: string = "", destination: string = "", Amemo:memo=
   if(origin in Amemo) return Amemo[origin as keyof memo];
   if (origin === destination) return [];
   let originID = "&origin=" + getCityID(origin);
+  //let destinationID = "&destination="+ getCityID(destination)
+  //console.log(destination, destinationID)
   const fullURL = routesURL + originID;
+  //console.log('fullURL: ', fullURL)
   let routesCombo:route[] = []
   
   fetch(fullURL)
@@ -258,10 +263,10 @@ function getAllRoutes(origin: string = "", destination: string = "", Amemo:memo=
   return routesCombo;
 }
 
-setTimeout(function () {
-  console.log(getAllRoutes("adelanto", "Chino"));
-  //console.log(cities);
-}, 2000);
+// setTimeout(function () {
+//   console.log(getAllRoutes("adelanto", "chino"));
+//   //console.log(cities);
+// }, 2000);
 
 export default function AppShellDemo() {
   const theme = useMantineTheme();
