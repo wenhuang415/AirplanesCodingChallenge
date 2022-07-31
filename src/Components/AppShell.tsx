@@ -21,23 +21,45 @@ const routesURL = "http://javin.dev.usekilo.com:8000/api/routes/?format=json";
 const airlineURL =
   "http://javin.dev.usekilo.com:8000/api/airlines/?format=json";
 
-const airplaneURL = 'http://javin.dev.usekilo.com:8000/api/aircraft/?format=json&offset='
+const airplaneURL =
+  "http://javin.dev.usekilo.com:8000/api/aircraft/?format=json&offset=";
 
-let cityID: Object[] = [];
+
+let cities: city[] = [];
 let cityNames: string[] = [];
 let airplanes: plane[] = [];
 let airlines: airline[] = [];
 
+interface city {
+  city_id: string;
+  city_number: number;
+  county: string;
+  name: string;
+  shape_area: number;
+  shape_length: number;
+  latitude: number;
+  longitude: number;
+}
+
 interface plane {
-  'aircraft_id': string,
-  'airline': string,
-  'name': string,
-  'speed': number
+  aircraft_id: string;
+  airline: string;
+  name: string;
+  speed: number;
 }
 
 interface airline {
-  'airline_id': string,
-  'name': string
+  airline_id: string;
+  name: string;
+}
+
+interface route {
+  route_id: string;
+  cost: number;
+  distance: number;
+  origin: string;
+  aircraft: string;
+  destination: string;
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -50,41 +72,38 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function getCities(zones: any) {
-    const city = zones.results;
-    const keys = Object.keys(zones.results);
-    //console.log(keys);
-    keys.forEach((key) => {
-      //console.log('id: ',city[key].city_id, 'name:', city[key].name)
-      let name = city[key].name.toLowerCase();
-      let id = city[key].city_id;
-      let aCity = { [name]: id };
-      cityID.push(aCity);
-      cityNames.push(name);
-    });
+    const cityList = zones.results;
+    //console.log(cityList)
+    for(let aCity of cityList) {
+      //console.log(aCity)
+      cities.push(aCity)
+      cityNames.push(aCity.name)
+      //cityID.push(aCity.city_id)
+    }
   }
 
   //fetch all 4 pages for cities
   for (let i = 0; i < 5; i++) {
     fetchZones(i * 100);
   }
-
+  
   async function fetchAircraft(i: number) {
-        await fetch(airplaneURL + i)
+    await fetch(airplaneURL + i)
       .then((response) => response.json())
       .then((data) => addAircraft(data))
       .catch(Error);
   }
 
-  function addAircraft(aircraft:any) {
-    airplanes.push(aircraft.results)
-    const keys = Object.keys(aircraft.results)
+  function addAircraft(aircraft: any) {
+    airplanes.push(aircraft.results);
+    const keys = Object.keys(aircraft.results);
     keys.forEach((key) => {
-      airplanes.push(aircraft.results[key])
-    })
+      airplanes.push(aircraft.results[key]);
+    });
   }
 
-  for(let i = 0; i < 28; i++) {
-    fetchAircraft(i)
+  for (let i = 0; i < 28; i++) {
+    fetchAircraft(i);
   }
 
   async function fetchAirline() {
@@ -97,46 +116,52 @@ document.addEventListener("DOMContentLoaded", async () => {
   function addAirline(airline: any) {
     //const dom = document.querySelector("#airline");
     const airlineObj = airline.results;
-    for(let airline of airlineObj) {
-      airlines.push(airline)
+    for (let airline of airlineObj) {
+      airlines.push(airline);
     }
   }
   fetchAirline();
-  console.log(airlines)
+  //console.log(airlines)
 });
 
-function craftToLine(craft:string):string {
-  let line =''
-  airplanes.forEach(plane => {
-    if(craft == plane.aircraft_id) line = plane.airline
-  })
+function craftToLine(craft: string): string {
+  let line = "";
+  airplanes.forEach((plane) => {
+    if (craft == plane.aircraft_id) line = plane.airline;
+  });
   return line;
 }
 
-function lineToName(line:string):string {
-  let name =''
-  airlines.forEach( (aLine) => {
-    if(aLine.airline_id == line) name = aLine.name
-  })
+function lineToName(line: string): string {
+  let name = "";
+  airlines.forEach((aLine) => {
+    if (aLine.airline_id == line) name = aLine.name;
+  });
   return name;
 }
 
-
-function getCityID(name: any) :string {
-  let ret = ''
-  const keys = Object.keys(cityID);
-  keys.forEach((key: any) => {
-    const city = cityID[key];
-    const cityObj = Object.keys(city);
-    const cityName = cityObj[0];
-    if (cityName == name) {
-      const id: string = city[cityName as keyof typeof city].toString(); //this line took an hour to figure out
-      console.log(cityName);
-      console.log(id);
-      ret = id;
-    }
-  });
+function getCityID(name: any): string {
+  let ret = "";
+  for(let aCity of cities) {
+    if(aCity.name === name) ret = aCity.city_id
+  }
   return ret;
+}
+
+function getCityName(id: string): string {
+  let ret =''
+  for(let aCity of cities) {
+    if(aCity.city_id === id) ret=aCity.name
+  }
+  return ret;
+}
+
+function craftIDtoName(id: string): string {
+  let name = "";
+  for (let plane of airplanes) {
+    if (plane.aircraft_id == id) name = plane.name;
+  }
+  return name;
 }
 
 async function fetchRoutes(
@@ -146,17 +171,17 @@ async function fetchRoutes(
   destination: string = "",
   aircraft: string = ""
 ) {
-  console.log("origin: ", origin);
-  console.log("getCityID: ", getCityID(origin));
+  //console.log("origin: ", origin);
+  //console.log("getCityID: ", getCityID(origin));
   cost = "&cost=" + cost;
   distance = "&distance=" + distance;
   let originID = "&origin=" + getCityID(origin);
-  console.log("originID: ", originID);
+  //console.log("originID: ", originID);
   let destinationID = "&destination=" + getCityID(destination);
   aircraft = "&aircraft=" + aircraft;
   const fullURL =
     routesURL + cost + distance + originID + destinationID + aircraft;
-  console.log("routeURL: ", fullURL);
+  //console.log("routeURL: ", fullURL);
   await fetch(fullURL)
     .then((response) => response.json())
     .then((data) => addRoutes(data))
@@ -168,26 +193,29 @@ function addRoutes(routes: any) {
   if (tbody !== null) {
     tbody.innerHTML = "";
     const routesObj = routes.results;
-    const keys = Object.keys(routesObj);
-    keys.forEach((key) => {
+    routesObj.forEach((aRoute: route) => {
       const tr = document.createElement("tr");
       const tdID = document.createElement("td");
-      tdID.innerHTML = routesObj[key].route_id;
+      tdID.innerHTML = aRoute.route_id;
       const tdCost = document.createElement("td");
-      tdCost.innerHTML = routesObj[key].cost;
+      tdCost.innerHTML = aRoute.cost.toString();
       const tdDistance = document.createElement("td");
-      tdDistance.innerHTML = routesObj[key].distance;
+      tdDistance.innerHTML = aRoute.distance.toString();
       const tdAircraft = document.createElement("td");
-      tdAircraft.innerHTML = routesObj[key].aircraft;
-
-      
+      //convert airplane id to name
+      tdAircraft.innerHTML = craftIDtoName(aRoute.aircraft);
       const tdLine = document.createElement("td");
       //convert aircraft ID to airline ID
-      let airlineID = craftToLine(routesObj[key].aircraft)
+      let airlineID = craftToLine(aRoute.aircraft);
       //conver airline ID to airline name
-      let airlineName = lineToName(airlineID)
-
+      let airlineName = lineToName(airlineID);
       tdLine.innerHTML = airlineName;
+
+      const tdFrom = document.createElement("td");
+      tdFrom.innerHTML = getCityName(aRoute.origin) 
+
+      const tdTo = document.createElement("td")
+      tdTo.innerHTML = getCityName(aRoute.destination)
 
 
       tr.appendChild(tdID);
@@ -195,10 +223,45 @@ function addRoutes(routes: any) {
       tr.appendChild(tdDistance);
       tr.appendChild(tdAircraft);
       tr.appendChild(tdLine);
+      tr.appendChild(tdFrom);
+      tr.appendChild(tdTo);
       tbody?.appendChild(tr);
     });
   }
 }
+
+interface memo{
+  [key: string]: route[]
+}
+
+function getAllRoutes(origin: string = "", destination: string = "", Amemo:memo={}) {
+  //base case
+  //console.log(Amemo)
+  Amemo = Amemo || {}
+  if(origin in Amemo) return Amemo[origin as keyof memo];
+  if (origin === destination) return [];
+  let originID = "&origin=" + getCityID(origin);
+  const fullURL = routesURL + originID;
+  let routesCombo:route[] = []
+  
+  fetch(fullURL)
+    .then((response) => response.json())
+    .then((data) => {
+      for(let aRoute of data.results) {
+        //console.log(aRoute)
+        let moreRoutes = getAllRoutes(getCityName(aRoute.destination) , destination, Amemo);
+        routesCombo.push(aRoute)
+      }
+
+    });
+  Amemo[origin as keyof memo] = routesCombo;
+  return routesCombo;
+}
+
+setTimeout(function () {
+  console.log(getAllRoutes("adelanto", "Chino"));
+  //console.log(cities);
+}, 2000);
 
 export default function AppShellDemo() {
   const theme = useMantineTheme();
@@ -251,7 +314,7 @@ export default function AppShellDemo() {
               value={cost}
               onChange={setCost}
             />
-              <input
+            <input
               type="text"
               placeholder="distance"
               value={distance}
@@ -307,6 +370,8 @@ export default function AppShellDemo() {
             <th id="distanceID">Distance</th>
             <th id="aircraftID">Aircraft</th>
             <th id="airlineID">Airline</th>
+            <th>From</th>
+            <th>To</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
