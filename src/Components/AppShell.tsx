@@ -13,7 +13,6 @@ import {
   Autocomplete,
   Table,
   Button,
-  keyframes,
 } from "@mantine/core";
 
 const citiesURL =
@@ -22,8 +21,24 @@ const routesURL = "http://javin.dev.usekilo.com:8000/api/routes/?format=json";
 const airlineURL =
   "http://javin.dev.usekilo.com:8000/api/airlines/?format=json";
 
+const airplaneURL = 'http://javin.dev.usekilo.com:8000/api/aircraft/?format=json&offset='
+
 let cityID: Object[] = [];
 let cityNames: string[] = [];
+let airplanes: plane[] = [];
+let airlines: airline[] = [];
+
+interface plane {
+  'aircraft_id': string,
+  'airline': string,
+  'name': string,
+  'speed': number
+}
+
+interface airline {
+  'airline_id': string,
+  'name': string
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   //get all the city name and city ids
@@ -53,6 +68,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     fetchZones(i * 100);
   }
 
+  async function fetchAircraft(i: number) {
+        await fetch(airplaneURL + i)
+      .then((response) => response.json())
+      .then((data) => addAircraft(data))
+      .catch(Error);
+  }
+
+  function addAircraft(aircraft:any) {
+    airplanes.push(aircraft.results)
+    const keys = Object.keys(aircraft.results)
+    keys.forEach((key) => {
+      airplanes.push(aircraft.results[key])
+    })
+  }
+
+  for(let i = 0; i < 28; i++) {
+    fetchAircraft(i)
+  }
+
   async function fetchAirline() {
     await fetch(airlineURL)
       .then((response) => response.json())
@@ -61,20 +95,32 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function addAirline(airline: any) {
-    const dom = document.querySelector("#airline");
+    //const dom = document.querySelector("#airline");
     const airlineObj = airline.results;
-    const keys = Object.keys(airlineObj);
-    //console.log(keys)
-    keys.forEach((key) => {
-      const text = document.createElement("Text");
-      //console.log(airlineObj[key].name)
-      const airlineName = airlineObj[key].name;
-      text.innerHTML = JSON.stringify(airlineName);
-      dom?.append(text);
-    });
+    for(let airline of airlineObj) {
+      airlines.push(airline)
+    }
   }
   fetchAirline();
+  console.log(airlines)
 });
+
+function craftToLine(craft:string):string {
+  let line =''
+  airplanes.forEach(plane => {
+    if(craft == plane.aircraft_id) line = plane.airline
+  })
+  return line;
+}
+
+function lineToName(line:string):string {
+  let name =''
+  airlines.forEach( (aLine) => {
+    if(aLine.airline_id == line) name = aLine.name
+  })
+  return name;
+}
+
 
 function getCityID(name: any) :string {
   let ret = ''
@@ -134,10 +180,21 @@ function addRoutes(routes: any) {
       const tdAircraft = document.createElement("td");
       tdAircraft.innerHTML = routesObj[key].aircraft;
 
+      
+      const tdLine = document.createElement("td");
+      //convert aircraft ID to airline ID
+      let airlineID = craftToLine(routesObj[key].aircraft)
+      //conver airline ID to airline name
+      let airlineName = lineToName(airlineID)
+
+      tdLine.innerHTML = airlineName;
+
+
       tr.appendChild(tdID);
       tr.appendChild(tdCost);
       tr.appendChild(tdDistance);
       tr.appendChild(tdAircraft);
+      tr.appendChild(tdLine);
       tbody?.appendChild(tr);
     });
   }
